@@ -57,9 +57,9 @@
 //======================================================================
 
 module fpu_adder_parameterized #(
-    parameter TOTAL_WIDTH,    
-    parameter EXP_WIDTH,        
-    parameter MANT_WIDTH     
+    parameter TOTAL_WIDTH = 32,    
+    parameter EXP_WIDTH = 8,        
+    parameter MANT_WIDTH = 23     
 )(
     input [TOTAL_WIDTH-1:0] a,
     input [TOTAL_WIDTH-1:0] b,
@@ -110,10 +110,39 @@ reg [SUM_WIDTH-1:0] sum_result;
 reg result_sign;
 reg [MANT_WIDTH-1:0] result_mant;
 reg add_sub; // 0: add, 1: subtract
+reg [EXP_WIDTH-1:0] shift_amount;
+reg [SUM_WIDTH-1:0] temp_sum;
+
+function [EXP_WIDTH-1:0] count_leading_zeros;
+    input [SUM_WIDTH-1:0] value;
+    integer i;
+    begin
+        count_leading_zeros = 0;
+        for (i = SUM_WIDTH-2; i >= 0; i = i - 1) begin
+            if (value[i]) begin
+                count_leading_zeros = ((SUM_WIDTH-2) - i);
+                i = -1; // Break out of loop (Verilog compatible way)
+            end
+        end
+    end
+endfunction
 
 always @(*) begin
-    // Handle special cases first
+    // Initialize values to zero to prevent latches
+    mant_a_full = 0;
+    mant_b_full = 0;
+    add_sub = 0;
+    result_exp = 0;
+    exp_diff = 0;
+    mant_a_shifted = 0;
+    mant_b_shifted = 0;
+    sum_result = 0;
+    result_sign = 0;
+    result_mant = 0;
+    shift_amount = 0;
+    temp_sum = 0;
 
+    // Handle special cases first
     // If either operand is NaN, result is NaN
     if (a_is_nan || b_is_nan) begin
         out = {1'b0, {EXP_WIDTH{1'b1}}, 1'b1, {MANT_WIDTH-1{1'b0}}}; // NaN
@@ -206,42 +235,30 @@ always @(*) begin
         end
         
         // Normalize the result
-        if (sum_result == {SUM_WIDTH{1'b0}}) begin
+        if (sum_result == 0) begin
             // Result is zero
-            out = {TOTAL_WIDTH{1'b0}};
-        end else begin
-            // Find the leading 1 and normalize
-            reg [EXP_WIDTH-1:0] shift_amount;
-            reg [SUM_WIDTH-1:0] temp_sum;
-            integer i;
-            
-            shift_amount = 0;
-            temp_sum = sum_result;
-            
-            // If already normalized (leading 1 in correct position)
-            if (sum_result[SUM_WIDTH-2]) begin
-                // Extract mantissa bits
-                result_mant = sum_result[SUM_WIDTH-3:SUM_WIDTH-2-MANT_WIDTH];
-            end else begin
-                // Find position of leading 1
-                for (i = SUM_WIDTH-3; i >= 0; i = i - 1) begin
-                    if (sum_result[i] && shift_amount == 0) begin
-                        shift_amount = (SUM_WIDTH-2) - i;
-                    end
-                end
-                // Shift left to normalize
-                temp_sum = sum_result << shift_amount;
-                result_mant = temp_sum[SUM_WIDTH-3:SUM_WIDTH-2-MANT_WIDTH];
-                result_exp = result_exp - shift_amount;
-            end
-            
-            // Handle exponent overflow/underflow
+            out = 0;
+        end else if (sum_result[SUM_WIDTH-2]) begin
+            // Already normalized
+            result_mant = sum_result[SUM_WIDTH-3:SUM_WIDTH-2-MANT_WIDTH];
+            // Handle exponent overflow
             if (result_exp >= EXP_MAX) begin
                 out = {result_sign, {EXP_WIDTH{1'b1}}, {MANT_WIDTH{1'b0}}}; // Infinity
-            end else if (result_exp <= 0) begin
-                out = {result_sign, {EXP_WIDTH{1'b0}}, result_mant}; // Denormalized or zero
             end else begin
-                out = {result_sign, result_exp, result_mant}; // Normalized result
+                out = {result_sign, result_exp, result_mant};
+            end
+        end else begin
+            // Need to normalize - use priority encoder approach
+            shift_amount = count_leading_zeros(sum_result);
+            temp_sum = sum_result << shift_amount;
+            result_mant = temp_sum[SUM_WIDTH-3:SUM_WIDTH-2-MANT_WIDTH];
+            result_exp = result_exp - shift_amount;
+            
+            // Handle underflow
+            if (result_exp <= 0) begin
+                out = {result_sign, {EXP_WIDTH{1'b0}}, result_mant}; // Denormalized
+            end else begin
+                out = {result_sign, result_exp, result_mant};
             end
         end
     end

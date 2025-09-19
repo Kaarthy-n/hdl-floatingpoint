@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-`include "../common/fpu_adder_parameterized.v"
+//`include "../common/fpu_adder_parameterized.v"
 
 //======================================================================
 // Project      : Floating Point Unit - Half Precision Adder Wrapper
@@ -47,7 +47,7 @@
 module fp16_adder (
     input  [15:0] a,
     input  [15:0] b,
-    output [15:0] sum
+    output [15:0] out
 );
 
 //----------------------------------------------------------------------
@@ -67,7 +67,7 @@ fpu_adder_parameterized #(
 ) core_adder (
     .a   (a),
     .b   (b), 
-    .out (sum)
+    .out (out)
 );
 
 endmodule
