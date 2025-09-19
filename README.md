@@ -35,25 +35,27 @@ Supports **half (binary16), single (binary32), and double (binary64)** precision
 
 ## 📂 Repository Structure
 
+```
 hdl-floatingpoint/
 ├── README.md
-├── docs/ # Documentation and diagrams
-│ ├── ieee754_summary.md
-│ ├── rounding_modes.md
-│ └── exceptions.md
-├── src/ # RTL source code
-│ ├── common/ # Shared blocks (shifters, LZD, normalizers, rounding)
-│ ├── half/ # FP16 (binary16) units
-│ ├── single/ # FP32 (binary32) units
-│ ├── double/ # FP64 (binary64) units
-│ ├── converters/ # Int ↔ FP, FP ↔ FP
-│ ├── comparators/ # eq, lt, le, etc.
-│ ├── special/ # NaN/Inf/Zero/Denorm detection
-│ ├── advanced/ # sqrt, reciprocal, FMA
-│ └── top/ # Unified fpu_top.v
-├── tb/ # Testbenches
-└── results/ # Waveforms, synthesis reports
-
+├── docs/                 # Documentation and diagrams
+│   ├── ieee754_summary.md
+│   ├── rounding_modes.md
+│   └── exceptions.md
+├── src/                  # RTL source code
+│   ├── common/           # Shared blocks (shifters, LZD, normalizers, rounding)
+│   ├── half/             # FP16 (binary16) units
+│   ├── single/           # FP32 (binary32) units
+│   ├── double/           # FP64 (binary64) units
+│   ├── converters/       # Int ↔ FP, FP ↔ FP
+│   ├── comparators/      # eq, lt, le, etc.
+│   ├── special/          # NaN/Inf/Zero/Denorm detection
+│   ├── advanced/         # sqrt, reciprocal, FMA
+│   └── top/              # Unified fpu_top.v
+├── tb/                   # Testbenches
+├── scripts/              # Simulation & synthesis scripts
+└── results/              # Waveforms, synthesis reports
+```
 
 ---
 
